@@ -8,12 +8,20 @@ const fs = require('fs');
 const { execFile } = require('child_process');
 const { PSTFile } = require('pst-extractor');
 
+// Process level safety to prevent sudden server crashes on other systems
+process.on('uncaughtException', (err) => {
+    console.error('[GÜVENLİK] Yakalanmamış İstisna:', err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[GÜVENLİK] Yakalanmamış Rejection:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3800;
 
 app.use(cors());
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+app.use(express.json({ limit: '2048mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2048mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Configure Multer for PST uploads with safe temp cleanup
@@ -22,10 +30,11 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Clean up old temp uploads on startup
+// Clean up old temp uploads on startup (preserving .gitkeep)
 try {
     const files = fs.readdirSync(uploadDir);
     for (const f of files) {
+        if (f === '.gitkeep') continue;
         try { fs.unlinkSync(path.join(uploadDir, f)); } catch {}
     }
 } catch {}
@@ -33,11 +42,19 @@ try {
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname || '.pst') || '.pst';
+        const rawBase = path.basename(file.originalname || 'arsiv', ext);
+        const safeBase = rawBase.replace(/[^a-zA-Z0-9_\-\u00C0-\u017F\s]/g, '_').trim() || 'pst_dosyasi';
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + '-' + Buffer.from(file.originalname, 'latin1').toString('utf8'));
+        cb(null, `${uniqueSuffix}-${safeBase}${ext}`);
     }
 });
-const upload = multer({ storage });
+const upload = multer({
+    storage,
+    limits: {
+        fileSize: 100 * 1024 * 1024 * 1024 // 100 GB
+    }
+});
 
 // Active PST State
 let currentPstState = {
@@ -178,6 +195,16 @@ function openPstFile(rawFilePath) {
         throw new Error('Dosya bulunamadı. Lütfen dosya yolunu kontrol edin: ' + cleanPath);
     }
     const stat = fs.statSync(cleanPath);
+
+    // Safely close previous PST file handle to release lock and memory
+    if (currentPstState && currentPstState.pstFile && currentPstState.pstFile.pstFD) {
+        try {
+            fs.closeSync(currentPstState.pstFile.pstFD);
+        } catch (closeErr) {
+            console.warn('Önceki PST kapatılırken uyarı:', closeErr.message);
+        }
+    }
+
     const pstFile = new PSTFile(cleanPath);
 
     const { folderMap, folderTree, totalEmails, totalFolders } = indexFolders(pstFile);
@@ -198,10 +225,14 @@ function openPstFile(rawFilePath) {
         totalAttachments: 0
     };
 
-    // Build photo index in background
+    // Build photo index in background safely without crashing
     setTimeout(() => {
-        buildGalleryIndex();
-    }, 100);
+        try {
+            buildGalleryIndex();
+        } catch (bgErr) {
+            console.error('Arka plan galeri indeksleme uyarısı:', bgErr.message);
+        }
+    }, 1000);
 
     return {
         fileName: currentPstState.fileName,
@@ -333,36 +364,40 @@ function buildGalleryIndex() {
     const photos = [];
     let totalAttach = 0;
 
-    for (const [folderId, entry] of currentPstState.folderMap.entries()) {
-        if (entry.contentCount > 0) {
-            const msgs = getFolderMessages(folderId);
-            for (const msg of msgs) {
-                totalAttach += msg.attachmentCount || 0;
-                if (msg.attachments && msg.attachments.length > 0) {
-                    for (const att of msg.attachments) {
-                        if (att.isImage) {
-                            photos.push({
-                                id: `photo_${folderId}_${msg.index}_${att.index}`,
-                                folderId,
-                                folderName: entry.name,
-                                msgIndex: msg.index,
-                                attachIndex: att.index,
-                                filename: att.filename,
-                                filesize: att.filesize,
-                                formattedSize: att.formattedSize,
-                                mimeTag: att.mimeTag,
-                                emailSubject: msg.subject,
-                                emailSender: msg.senderName || msg.senderEmail,
-                                emailDate: msg.date ? msg.date.formatted : '',
-                                emailDateIso: msg.date ? msg.date.iso : '',
-                                previewUrl: `/api/attachment/${folderId}/${msg.index}/${att.index}`,
-                                downloadUrl: `/api/attachment/${folderId}/${msg.index}/${att.index}?download=1`
-                            });
+    try {
+        for (const [folderId, entry] of currentPstState.folderMap.entries()) {
+            if (entry.contentCount > 0) {
+                const msgs = getFolderMessages(folderId);
+                for (const msg of msgs) {
+                    totalAttach += msg.attachmentCount || 0;
+                    if (msg.attachments && msg.attachments.length > 0) {
+                        for (const att of msg.attachments) {
+                            if (att.isImage) {
+                                photos.push({
+                                    id: `photo_${folderId}_${msg.index}_${att.index}`,
+                                    folderId,
+                                    folderName: entry.name,
+                                    msgIndex: msg.index,
+                                    attachIndex: att.index,
+                                    filename: att.filename,
+                                    filesize: att.filesize,
+                                    formattedSize: att.formattedSize,
+                                    mimeTag: att.mimeTag,
+                                    emailSubject: msg.subject,
+                                    emailSender: msg.senderName || msg.senderEmail,
+                                    emailDate: msg.date ? msg.date.formatted : '',
+                                    emailDateIso: msg.date ? msg.date.iso : '',
+                                    previewUrl: `/api/attachment/${folderId}/${msg.index}/${att.index}`,
+                                    downloadUrl: `/api/attachment/${folderId}/${msg.index}/${att.index}?download=1`
+                                });
+                            }
                         }
                     }
                 }
             }
         }
+    } catch (err) {
+        console.error('Galeri indeksleme sırasında hata:', err);
     }
 
     currentPstState.galleryPhotos = photos;
@@ -1052,10 +1087,18 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start Server
-app.listen(PORT, () => {
+// Start Server with infinite timeouts for large file uploads
+const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);
     console.log(`  PST Görüntüleyici ve Fotoğraf Çıkarıcı Yayında!`);
     console.log(`  Adres: http://localhost:${PORT}`);
     console.log(`====================================================`);
 });
+
+// Configure server timeouts for large multi-gigabyte PST file uploads
+server.timeout = 0; // Disable socket inactivity timeout
+server.keepAliveTimeout = 120000;
+server.headersTimeout = 125000;
+if (typeof server.requestTimeout !== 'undefined') {
+    server.requestTimeout = 0; // Node 18+ disable request timeout
+}

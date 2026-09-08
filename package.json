@@ -4,7 +4,7 @@
   "description": "Outlook olmadan PST ve OST dosyalarını açma, e-postaları okuma ve fotoğrafları/ekleri görüntüleme & dışa aktarma uygulaması",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node --max-old-space-size=8192 server.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",

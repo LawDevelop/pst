@@ -1,8 +1,9 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 
 # Temporary files & uploads
-temp_uploads/
+temp_uploads/*
+!temp_uploads/.gitkeep
 *.tmp
 *.log
 

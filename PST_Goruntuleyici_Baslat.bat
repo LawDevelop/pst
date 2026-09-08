@@ -26,6 +26,6 @@ echo ========================================================
 echo.
 
 start http://localhost:3800
-node server.js
+node --max-old-space-size=8192 server.js
 
 pause

@@ -244,21 +244,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function openPstUpload(file) {
-        if (!file) return;
-        showLoading(`"${file.name}" yükleniyor...`);
+    function uploadPstWithProgress(file) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/upload', true);
 
-        try {
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    const loadedMB = (e.loaded / (1024 * 1024)).toFixed(1);
+                    const totalMB = (e.total / (1024 * 1024)).toFixed(1);
+                    if (percent < 100) {
+                        showLoading(`"${file.name}" yükleniyor: %${percent} (${loadedMB} MB / ${totalMB} MB)`);
+                    } else {
+                        showLoading('Dosya sunucuya yüklendi! PST yapısı taranıyor ve e-postalar açılıyor, lütfen bekleyin...');
+                    }
+                }
+            };
+
+            xhr.onload = () => {
+                let data = null;
+                try {
+                    data = JSON.parse(xhr.responseText);
+                } catch {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        return reject(new Error('Sunucudan geçersiz veri yanıtı alındı.'));
+                    } else {
+                        return reject(new Error(`Sunucu hatası (Kod ${xhr.status}): ${xhr.responseText.substring(0, 150)}`));
+                    }
+                }
+
+                if (xhr.status >= 200 && xhr.status < 300 && (!data || !data.error)) {
+                    resolve(data);
+                } else {
+                    reject(new Error(data?.error || `İşlem başarısız (Kod ${xhr.status})`));
+                }
+            };
+
+            xhr.onerror = () => {
+                reject(new Error('Sunucu ile bağlantı kurulamadı. Büyük PST dosyalarında "Bilgisayardan Gözat" butonunu kullanarak dosyayı kopyalamadan doğrudan ve anında açabilirsiniz.'));
+            };
+
+            xhr.ontimeout = () => {
+                reject(new Error('Yükleme zaman aşımına uğradı. "Bilgisayardan Gözat" butonu ile doğrudan açabilirsiniz.'));
+            };
+
             const formData = new FormData();
             formData.append('pstFile', file);
+            xhr.send(formData);
+        });
+    }
 
-            const data = await safeFetchJson('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
+    async function openPstUpload(file) {
+        if (!file) return;
+        showLoading(`"${file.name}" hazırlanıyor...`);
 
+        try {
+            const data = await uploadPstWithProgress(file);
             handlePstOpened(data);
-            showToast(`"${data.fileName}" başarıyla yüklendi!`, 'success');
+            showToast(`"${data.fileName}" başarıyla yüklendi! (${data.totalEmails} e-posta)`, 'success');
         } catch (err) {
             showToast(err.message, 'error');
         } finally {

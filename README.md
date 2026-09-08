@@ -6,9 +6,10 @@ Bu uygulama, bilgisayarınızda **Microsoft Outlook** veya Microsoft Office yük
 
 ## 🚀 Hızlı Başlangıç
 
-1. `PST_Goruntuleyici_Baslat.bat` dosyasına çift tıklayın.
+1. `PST_Goruntuleyici_Baslat.bat` dosyasına çift tıklayın. (Gerekli kütüphaneleri otomatik yükler ve sunucuyu başlatır)
 2. Otomatik olarak varsayılan internet tarayıcınızda `http://localhost:3800` adresi açılacaktır.
-3. **"Bilgisayardan Gözat"** veya **"Dosya Aç"** butonuna basarak açmak istediğiniz `.pst` veya `.ost` dosyasını seçin.
+3. **"Bilgisayardan Gözat"** butonuna basarak açmak istediğiniz `.pst` veya `.ost` dosyasını seçin. *(Büyük boyutlu arşivler dosyayı kopyalamadan ve tarayıcıya yüklemeden doğrudan diskten saniyeler içinde açılır).*
+4. Alternatif olarak arayüzdeki **"Dosya Yükle"** butonundan veya sürükle-bırak yaparak da dosyanızı açabilirsiniz. Yükleme esnasında anlık yüzde ilerleme çubuğu gösterilir.
 
 ---
 
