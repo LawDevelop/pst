@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PST Görüntüleyici Pro | Outlook Olmadan PST Açıcı & Fotoğraf Çıkarıcı</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts & Lucide Icons CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="theme-light">
+    <div id="app" class="app-container">
+        <!-- Top Navbar -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-group">
+                    <div class="logo-icon">
+                        <i data-lucide="mail-search"></i>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-title">PST Görüntüleyici <span class="badge-pro">PRO</span></span>
+                        <span class="logo-subtitle">Outlook Gerektirmeyen Veri Yöneticisi</span>
+                    </div>
+                </div>
+
+                <div id="active-file-pill" class="file-status-pill hidden">
+                    <i data-lucide="file-check-2" class="status-icon"></i>
+                    <span id="active-filename" class="filename-text">backup.pst</span>
+                    <span id="active-filesize" class="filesize-text">0 MB</span>
+                    <span id="active-item-count" class="item-count-text">0 E-posta</span>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <button id="btn-open-dialog" class="btn btn-primary" title="Yeni bir PST/OST dosyası aç">
+                    <i data-lucide="folder-open"></i>
+                    <span>Dosya Aç</span>
+                </button>
+
+                <button id="btn-toggle-gallery" class="btn btn-secondary hidden" title="Tüm fotoğrafları ve görselleri görüntüle">
+                    <i data-lucide="images"></i>
+                    <span>Fotoğraf Galerisi</span>
+                    <span id="gallery-badge-count" class="badge-counter">0</span>
+                </button>
+
+                <button id="btn-export-modal" class="btn btn-secondary hidden" title="Toplu dışa aktarma seçenekleri">
+                    <i data-lucide="download-cloud"></i>
+                    <span>Dışa Aktar</span>
+                </button>
+
+                <button id="btn-toggle-theme" class="btn btn-icon" title="Temayı Değiştir">
+                    <i data-lucide="moon" id="theme-icon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Body Area -->
+        <main class="app-main">
+            <!-- Welcome / File Open Screen (Shown when no PST is loaded) -->
+            <section id="welcome-view" class="welcome-screen">
+                <div class="welcome-card">
+                    <div class="welcome-hero-icon">
+                        <i data-lucide="layers"></i>
+                    </div>
+                    <h2>PST veya OST Dosyası Seçin</h2>
+                    <p class="welcome-desc">
+                        Microsoft Outlook programına ihtiyaç duymadan <strong>.pst</strong> ve <strong>.ost</strong> dosyalarınızdaki tüm mailleri, ekleri ve fotoğrafları anında görüntüleyin.
+                    </p>
+
+                    <div id="drop-zone" class="drop-zone">
+                        <div class="drop-icon">
+                            <i data-lucide="upload-cloud"></i>
+                        </div>
+                        <p class="drop-title">PST / OST Dosyanızı Buraya Sürükleyin</p>
+                        <p class="drop-subtitle">veya bilgisayarınızdan seçmek için aşağıdaki butona tıklayın</p>
+                        
+                        <div class="drop-actions">
+                            <button id="btn-browse-file" class="btn btn-primary btn-lg">
+                                <i data-lucide="folder-search"></i>
+                                <span>Bilgisayardan Gözat</span>
+                            </button>
+                            <input type="file" id="file-input-native" accept=".pst,.ost" style="display:none;">
+                            <button id="btn-upload-file" class="btn btn-outline btn-lg">
+                                <i data-lucide="upload"></i>
+                                <span>Dosya Yükle</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Direct Path Input Option -->
+                    <div class="path-input-group">
+                        <label for="manual-path-input">Doğrudan Dosya Yolu Girin:</label>
+                        <div class="input-with-button">
+                            <input type="text" id="manual-path-input" placeholder="Örn: C:\Kullanicilar\Ahmet\Belgeler\Outlook\arsiv.pst">
+                            <button id="btn-open-path" class="btn btn-secondary">Aç</button>
+                        </div>
+                    </div>
+
+                    <!-- Sample Test Data Quick Open -->
+                    <div class="sample-load-section">
+                        <button id="btn-load-sample" class="btn btn-ghost btn-sm">
+                            <i data-lucide="sparkles"></i>
+                            <span>Örnek Test Dosyasını Aç (Enron.pst)</span>
+                        </button>
+                    </div>
+
+                    <!-- Feature Badges -->
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i data-lucide="shield-check"></i>
+                            <div>
+                                <strong>%100 Güvenli & Yerel</strong>
+                                <span>Verileriniz bilgisayarınızdan dışarı çıkmaz</span>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <i data-lucide="image"></i>
+                            <div>
+                                <strong>Özel Fotoğraf Galerisi</strong>
+                                <span>Tüm görselleri tek ekranda toplayıp indirin</span>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <i data-lucide="archive"></i>
+                            <div>
+                                <strong>ZIP & EML Aktarımı</strong>
+                                <span>Mailleri ve ekleri kolayca dışa aktarın</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3-Pane Email Explorer View (Shown when PST is loaded) -->
+            <section id="explorer-view" class="explorer-layout hidden">
+                <!-- Left Pane: Folder Navigation -->
+                <aside class="pane-sidebar">
+                    <div class="sidebar-top">
+                        <span class="sidebar-title">KLASÖRLER</span>
+                    </div>
+
+                    <div class="quick-nav-section">
+                        <div class="nav-item active" data-view="all-emails" id="nav-all-emails">
+                            <i data-lucide="mail"></i>
+                            <span class="nav-label">Tüm E-Postalar</span>
+                            <span id="badge-total-emails" class="nav-badge">0</span>
+                        </div>
+                        <div class="nav-item" data-view="all-photos" id="nav-all-photos">
+                            <i data-lucide="images"></i>
+                            <span class="nav-label">Tüm Fotoğraflar</span>
+                            <span id="badge-total-photos" class="nav-badge highlight">0</span>
+                        </div>
+                        <div class="nav-item" data-view="with-attachments" id="nav-with-attachments">
+                            <i data-lucide="paperclip"></i>
+                            <span class="nav-label">Ekli Mailler</span>
+                            <span id="badge-total-attachments" class="nav-badge">0</span>
+                        </div>
+                    </div>
+
+                    <div class="folder-tree-header">
+                        <span>PST Klasör Yapısı</span>
+                    </div>
+
+                    <div id="folder-tree-container" class="folder-tree-container">
+                        <!-- Populated by JavaScript -->
+                    </div>
+
+                    <div class="sidebar-footer">
+                        <button id="btn-export-quick" class="btn btn-outline btn-block btn-sm">
+                            <i data-lucide="archive"></i>
+                            <span>Tüm Veriyi Dışa Aktar</span>
+                        </button>
+                    </div>
+                </aside>
+
+                <!-- Middle Pane: Message List -->
+                <section class="pane-messages">
+                    <div class="messages-header">
+                        <div class="search-box">
+                            <i data-lucide="search" class="search-icon"></i>
+                            <input type="text" id="mail-search-input" placeholder="Konu, gönderen veya içerikte ara...">
+                            <button id="btn-clear-search" class="btn-clear hidden" title="Aramayı Temizle">
+                                <i data-lucide="x"></i>
+                            </button>
+                        </div>
+
+                        <div class="filter-sort-bar">
+                            <div class="filter-chips">
+                                <button class="chip active" data-filter="all">Tümü</button>
+                                <button class="chip" data-filter="photos"><i data-lucide="image" class="chip-icon"></i> Fotoğraflı</button>
+                                <button class="chip" data-filter="attachments"><i data-lucide="paperclip" class="chip-icon"></i> Ekli</button>
+                            </div>
+
+                            <select id="sort-select" class="sort-select" title="Sıralama">
+                                <option value="date_desc">Tarih (En Yeni)</option>
+                                <option value="date_asc">Tarih (En Eski)</option>
+                                <option value="sender">Gönderen (A-Z)</option>
+                                <option value="subject">Konu (A-Z)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="messages-info-bar">
+                        <span id="messages-count-label">0 e-posta bulundu</span>
+                        <span id="current-folder-label" class="current-folder-pill">Tüm Klasörler</span>
+                    </div>
+
+                    <!-- Messages List Items Container -->
+                    <div id="message-list-container" class="message-list-container">
+                        <!-- Populated by JavaScript -->
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div class="pagination-bar">
+                        <button id="btn-page-prev" class="btn btn-icon btn-sm" disabled title="Önceki Sayfa">
+                            <i data-lucide="chevron-left"></i>
+                        </button>
+                        <span id="pagination-label" class="page-indicator">Sayfa 1 / 1</span>
+                        <button id="btn-page-next" class="btn btn-icon btn-sm" disabled title="Sonraki Sayfa">
+                            <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Right Pane: Message Viewer -->
+                <section class="pane-reading">
+                    <!-- Empty State (when no message is selected) -->
+                    <div id="reader-empty-state" class="reader-empty">
+                        <div class="empty-icon">
+                            <i data-lucide="mail-open"></i>
+                        </div>
+                        <h3>Görüntülemek için bir e-posta seçin</h3>
+                        <p>Sol listeden bir e-postaya tıklayarak içeriğini, eklerini ve fotoğraflarını inceleyebilirsiniz.</p>
+                    </div>
+
+                    <!-- Message Detail Container (when message is selected) -->
+                    <div id="reader-content" class="reader-content hidden">
+                        <!-- Message Header -->
+                        <div class="mail-header-card">
+                            <div class="mail-subject-row">
+                                <h1 id="mail-subject" class="mail-subject">E-posta Konusu</h1>
+                                <div class="mail-actions">
+                                    <button id="btn-download-eml" class="btn btn-secondary btn-sm" title="EML olarak bilgisayarına kaydet">
+                                        <i data-lucide="file-down"></i>
+                                        <span>EML İndir</span>
+                                    </button>
+                                    <button id="btn-download-html" class="btn btn-secondary btn-sm" title="HTML olarak bilgisayarına kaydet">
+                                        <i data-lucide="code"></i>
+                                        <span>HTML İndir</span>
+                                    </button>
+                                    <button id="btn-print-mail" class="btn btn-icon btn-sm" title="Yazdır">
+                                        <i data-lucide="printer"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mail-meta-grid">
+                                <div class="sender-avatar" id="mail-sender-avatar">A</div>
+                                <div class="meta-details">
+                                    <div class="sender-line">
+                                        <strong id="mail-sender-name">Ahmet Yılmaz</strong>
+                                        <span id="mail-sender-email" class="sender-address">&lt;ahmet@example.com&gt;</span>
+                                    </div>
+                                    <div class="recipient-line">
+                                        <span class="label">Kime:</span>
+                                        <span id="mail-recipient-to">mehmet@example.com</span>
+                                    </div>
+                                    <div id="mail-recipient-cc-row" class="recipient-line hidden">
+                                        <span class="label">Bilgi (CC):</span>
+                                        <span id="mail-recipient-cc">-</span>
+                                    </div>
+                                </div>
+                                <div class="meta-date">
+                                    <span id="mail-date" class="date-text">20 Ağustos 2026 14:30</span>
+                                </div>
+                            </div>
+
+                            <!-- Attachments & Photos Bar -->
+                            <div id="attachments-section" class="attachments-section hidden">
+                                <div class="attachments-header">
+                                    <div class="att-title">
+                                        <i data-lucide="paperclip"></i>
+                                        <span id="attachments-count-title">Ekler & Fotoğraflar (0)</span>
+                                    </div>
+                                    <button id="btn-download-all-attachments" class="btn btn-ghost btn-sm">
+                                        <i data-lucide="download"></i>
+                                        <span>Tüm Ekleri İndir</span>
+                                    </button>
+                                </div>
+                                <div id="attachments-grid" class="attachments-grid">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Body Format Switcher & Email Content -->
+                        <div class="mail-body-wrapper">
+                            <div class="body-tabs">
+                                <button class="body-tab active" data-tab="html" id="tab-html">
+                                    <i data-lucide="palette"></i>
+                                    <span>Biçimlendirilmiş (HTML)</span>
+                                </button>
+                                <button class="body-tab" data-tab="text" id="tab-text">
+                                    <i data-lucide="file-text"></i>
+                                    <span>Düz Metin (Text)</span>
+                                </button>
+                                <button class="body-tab" data-tab="headers" id="tab-headers">
+                                    <i data-lucide="terminal"></i>
+                                    <span>E-Posta Başlıkları (Headers)</span>
+                                </button>
+                            </div>
+
+                            <div class="body-container">
+                                <iframe id="mail-body-iframe" class="mail-body-iframe" sandbox="allow-same-origin allow-popups"></iframe>
+                                <pre id="mail-body-text" class="mail-body-text hidden"></pre>
+                                <pre id="mail-body-headers" class="mail-body-headers hidden"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <!-- Fullscreen Photo Gallery View -->
+            <section id="gallery-view" class="gallery-layout hidden">
+                <div class="gallery-top-bar">
+                    <div class="gallery-title-group">
+                        <button id="btn-back-to-explorer" class="btn btn-secondary btn-sm">
+                            <i data-lucide="arrow-left"></i>
+                            <span>Maillere Dön</span>
+                        </button>
+                        <h2>PST Fotoğraf & Medya Galerisi</h2>
+                        <span id="gallery-total-count-label" class="gallery-count-badge">0 Fotoğraf</span>
+                    </div>
+
+                    <div class="gallery-actions">
+                        <div class="gallery-search">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="gallery-search-input" placeholder="Fotoğraf adı veya mail ara...">
+                        </div>
+
+                        <button id="btn-download-all-photos-zip" class="btn btn-primary">
+                            <i data-lucide="download"></i>
+                            <span>Tüm Fotoğrafları İndir (ZIP)</span>
+                        </button>
+
+                        <button id="btn-export-photos-disk" class="btn btn-outline">
+                            <i data-lucide="folder-output"></i>
+                            <span>Klasöre Aktar...</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Gallery Grid Container -->
+                <div id="gallery-grid" class="gallery-grid-container">
+                    <!-- Populated by JavaScript -->
+                </div>
+
+                <!-- Gallery Pagination -->
+                <div class="gallery-pagination">
+                    <button id="btn-gallery-prev" class="btn btn-icon" disabled><i data-lucide="chevron-left"></i></button>
+                    <span id="gallery-pagination-label">Sayfa 1 / 1</span>
+                    <button id="btn-gallery-next" class="btn btn-icon" disabled><i data-lucide="chevron-right"></i></button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Lightbox Modal for Photo Zoom & Details -->
+        <div id="lightbox-modal" class="lightbox-modal hidden">
+            <div class="lightbox-backdrop" id="lightbox-backdrop"></div>
+            <div class="lightbox-content">
+                <button class="lightbox-close" id="lightbox-close" title="Kapat">
+                    <i data-lucide="x"></i>
+                </button>
+
+                <div class="lightbox-nav-btn prev" id="lightbox-prev" title="Önceki Fotoğraf">
+                    <i data-lucide="chevron-left"></i>
+                </div>
+                <div class="lightbox-nav-btn next" id="lightbox-next" title="Sonraki Fotoğraf">
+                    <i data-lucide="chevron-right"></i>
+                </div>
+
+                <div class="lightbox-image-wrapper">
+                    <img id="lightbox-image" src="" alt="Fotoğraf Önizleme">
+                </div>
+
+                <div class="lightbox-sidebar">
+                    <h3 id="lightbox-filename" class="lightbox-title">resim.jpg</h3>
+                    <div class="lightbox-info-group">
+                        <div class="info-row">
+                            <span class="info-label">Boyut:</span>
+                            <span id="lightbox-size" class="info-val">0 KB</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Tür:</span>
+                            <span id="lightbox-type" class="info-val">image/jpeg</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Klasör:</span>
+                            <span id="lightbox-folder" class="info-val">Gelen Kutusu</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Gönderen:</span>
+                            <span id="lightbox-sender" class="info-val">Ahmet</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Tarih:</span>
+                            <span id="lightbox-date" class="info-val">20.08.2026</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">E-Posta Konusu:</span>
+                            <span id="lightbox-subject" class="info-val">-</span>
+                        </div>
+                    </div>
+
+                    <div class="lightbox-actions">
+                        <a id="lightbox-btn-download" href="#" class="btn btn-primary btn-block" download>
+                            <i data-lucide="download"></i>
+                            <span>Bu Fotoğrafı İndir</span>
+                        </a>
+                        <button id="lightbox-btn-goto-mail" class="btn btn-secondary btn-block">
+                            <i data-lucide="mail"></i>
+                            <span>Bu E-Postayı Görüntüle</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Modal -->
+        <div id="export-modal" class="modal-dialog hidden">
+            <div class="modal-backdrop" id="export-modal-backdrop"></div>
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3><i data-lucide="download-cloud"></i> PST Dışa Aktarma Merkezi</h3>
+                    <button class="modal-close-btn" id="export-modal-close"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p class="modal-desc">PST dosyanızdaki içerikleri istediğiniz formatta dışa aktarabilirsiniz:</p>
+
+                    <div class="export-options-list">
+                        <!-- Option 1: All Photos ZIP -->
+                        <div class="export-option-card">
+                            <div class="export-card-icon"><i data-lucide="images"></i></div>
+                            <div class="export-card-info">
+                                <h4>Tüm Fotoğrafları İndir (ZIP)</h4>
+                                <p>PST dosyasındaki tüm fotoğrafları ve görselleri tek bir ZIP arşivi olarak indirir.</p>
+                            </div>
+                            <a href="/api/export/all-photos-zip" class="btn btn-primary btn-sm" download>
+                                <i data-lucide="download"></i> İndir
+                            </a>
+                        </div>
+
+                        <!-- Option 2: All Attachments ZIP -->
+                        <div class="export-option-card">
+                            <div class="export-card-icon"><i data-lucide="paperclip"></i></div>
+                            <div class="export-card-info">
+                                <h4>Tüm Ekleri İndir (Klasör Düzeninde ZIP)</h4>
+                                <p>Tüm e-postaların eklerini (PDF, Word, Excel, vb.) klasör yapısına göre ZIP olarak indirir.</p>
+                            </div>
+                            <a href="/api/export/all-attachments-zip" class="btn btn-secondary btn-sm" download>
+                                <i data-lucide="download"></i> İndir
+                            </a>
+                        </div>
+
+                        <!-- Option 3: Export to Local Folder on Disk -->
+                        <div class="export-option-card">
+                            <div class="export-card-icon"><i data-lucide="folder-sync"></i></div>
+                            <div class="export-card-info">
+                                <h4>Bilgisayardaki Bir Klasöre Doğrudan Çıkar</h4>
+                                <p>ZIP ile uğraşmadan doğrudan sabit diskinizdeki bir klasöre (Örn: D:\PST_Verileri) kaydeder.</p>
+                                
+                                <div class="disk-export-controls">
+                                    <div class="folder-select-row">
+                                        <input type="text" id="export-disk-path" placeholder="Hedef klasör yolu...">
+                                        <button id="btn-browse-export-folder" class="btn btn-secondary btn-sm">Gözat...</button>
+                                    </div>
+                                    <div class="disk-type-row">
+                                        <label><input type="radio" name="disk-export-type" value="photos" checked> Sadece Fotoğraflar</label>
+                                        <label><input type="radio" name="disk-export-type" value="attachments"> Tüm Ekler</label>
+                                        <label><input type="radio" name="disk-export-type" value="emails"> Tüm Mailler (.EML)</label>
+                                    </div>
+                                    <button id="btn-start-disk-export" class="btn btn-primary btn-sm">Klasöre Aktarmayı Başlat</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Toast Notification Container -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <div id="loading-text" class="loading-text">PST Dosyası Ayrıştırılıyor...</div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
